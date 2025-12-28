@@ -1,0 +1,209 @@
+/* ArenaForge Battle Sandbox — Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --panel-width: 250px;
+  --bg-dark: #1a1a2e;
+  --bg-panel: #16213e;
+  --accent: #e94560;
+  --accent-hover: #ff6b6b;
+  --text-primary: #eee;
+  --text-secondary: #aaa;
+  --border-color: #0f3460;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Main Canvas — Fills viewport minus panel */
+#battle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: calc(100vw - var(--panel-width));
+  height: 100vh;
+  background-color: #0d0d1a;
+}
+
+/* Top-Left Debug Overlay */
+#debug-overlay {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+#fps-display {
+  color: #4ade80;
+  margin-bottom: 4px;
+}
+
+#seed-display {
+  color: #60a5fa;
+}
+
+#ai-display {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+}
+
+#distance-display {
+  color: #fbbf24;
+}
+
+#fighter-a-state {
+  color: #60a5fa;
+}
+
+#fighter-b-state {
+  color: #f87171;
+}
+
+#impact-display {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+}
+
+#impact-counter {
+  color: #a78bfa;
+}
+
+#impact-toggle {
+  color: #34d399;
+}
+
+#impact-toggle.off {
+  color: #6b7280;
+}
+
+/* Right-Side Debug Panel */
+#debug-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--panel-width);
+  height: 100vh;
+  background-color: var(--bg-panel);
+  border-left: 2px solid var(--border-color);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+#debug-panel h2 {
+  color: var(--accent);
+  font-size: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Panel Sections */
+.panel-section {
+  margin-bottom: 24px;
+}
+
+.panel-section h3 {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+/* Button Group */
+.button-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.button-group button {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.button-group button:hover {
+  background-color: var(--accent);
+}
+
+.button-group button:active {
+  transform: scale(0.96);
+}
+
+.button-group button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Shortcut List */
+.shortcut-list {
+  list-style: none;
+  font-size: 13px;
+}
+
+.shortcut-list li {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.shortcut-list kbd {
+  display: inline-block;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'Consolas', monospace;
+  font-size: 12px;
+  margin-right: 8px;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Status Display */
+#status-display {
+  background: var(--bg-dark);
+  padding: 10px;
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  text-align: center;
+}
+
+#status-display.running {
+  color: #4ade80;
+}
+
+#status-display.paused {
+  color: #fbbf24;
+}
+
+#status-display.stopped {
+  color: var(--text-secondary);
+}
