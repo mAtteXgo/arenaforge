@@ -32,19 +32,28 @@ export const RAGDOLL_CONFIG = {
     lowerLeg: { width: 10, height: 34 },
     foot: { width: 16, height: 8 },
 
-    // Constraint settings
+    // Constraint settings (reduced stiffness to prevent jitter)
     constraints: {
-        stiffness: 0.9,        // How rigid joints are (0-1)
-        damping: 0.3,          // Oscillation dampening (0-1)
-        angularStiffness: 0.1, // Rotational resistance
+        stiffness: 0.7,        // How rigid joints are (0-1)
+        damping: 0.1,          // Oscillation dampening (0-1)
+        angularStiffness: 0.05, // Rotational resistance
     },
 
-    // Physics properties
+    // Physics properties (general)
     physics: {
         friction: 0.8,
         frictionStatic: 0.9,   // Static friction for better grip
-        frictionAir: 0.02,
+        frictionAir: 0.03,     // Slightly increased for faster settling
         restitution: 0.1,      // Bounciness
+        density: 0.001,
+    },
+
+    // Feet physics (higher friction for ground grip)
+    feetPhysics: {
+        friction: 1.0,
+        frictionStatic: 1.2,   // High static friction to prevent sliding
+        frictionAir: 0.02,
+        restitution: 0.05,
         density: 0.001,
     },
 
@@ -75,6 +84,19 @@ export function createRagdoll(x, y, options = {}) {
         frictionAir: config.physics.frictionAir,
         restitution: config.physics.restitution,
         density: config.physics.density,
+        collisionFilter: {
+            group: config.collisionGroup,
+        },
+    });
+
+    // Foot options (higher friction for ground grip)
+    const footOptions = (label) => ({
+        label,
+        friction: config.feetPhysics.friction,
+        frictionStatic: config.feetPhysics.frictionStatic,
+        frictionAir: config.feetPhysics.frictionAir,
+        restitution: config.feetPhysics.restitution,
+        density: config.feetPhysics.density,
         collisionFilter: {
             group: config.collisionGroup,
         },
@@ -177,7 +199,7 @@ export function createRagdoll(x, y, options = {}) {
         x - hipOffsetX + 4 * s,
         hipY + config.upperLeg.height * s + config.lowerLeg.height * s + config.foot.height * s / 2,
         config.foot.width * s, config.foot.height * s,
-        bodyOptions('leftFoot')
+        footOptions('leftFoot')
     );
 
     // Right leg
@@ -199,7 +221,7 @@ export function createRagdoll(x, y, options = {}) {
         x + hipOffsetX + 4 * s,
         hipY + config.upperLeg.height * s + config.lowerLeg.height * s + config.foot.height * s / 2,
         config.foot.width * s, config.foot.height * s,
-        bodyOptions('rightFoot')
+        footOptions('rightFoot')
     );
 
     // Collect all bodies

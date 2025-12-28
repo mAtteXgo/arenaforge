@@ -97,6 +97,58 @@ body {
   color: #6b7280;
 }
 
+#velocity-display {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  font-family: monospace;
+}
+
+#vx-a {
+  color: #60a5fa;
+}
+
+#vx-b {
+  color: #f87171;
+}
+
+#force-applied {
+  color: #fbbf24;
+}
+
+#balance-display {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  font-family: monospace;
+}
+
+#balance-toggle {
+  color: #34d399;
+}
+
+#balance-toggle.off {
+  color: #6b7280;
+}
+
+#angle-a {
+  color: #60a5fa;
+}
+
+#angle-b {
+  color: #f87171;
+}
+
+#support-status {
+  color: #a78bfa;
+}
+
+#support-status.off {
+  color: #6b7280;
+}
+
 /* Right-Side Debug Panel */
 #debug-panel {
   position: fixed;

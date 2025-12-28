@@ -10,7 +10,7 @@ import * as Simulator from './engine/Simulator.js';
 import * as Renderer from './render/Renderer.js';
 import * as Controls from './ui/Controls.js';
 import { createFighter, removeFighter } from './entities/Fighter.js';
-import { createAI, resetAI, startAI, stopAI, toggleAI, getAIState, getDistance } from './ai/AIBrain.js';
+import { createAI, resetAI, startAI, stopAI, toggleAI, getAIState, getDistance, debugState } from './ai/AIBrain.js';
 import {
     initImpactTracker,
     setEngine as setImpactEngine,
@@ -20,6 +20,17 @@ import {
     toggleImpactDisplay,
     isShowingImpacts
 } from './engine/ImpactTracker.js';
+import {
+    initBalanceAssist,
+    setFighters as setBalanceFighters,
+    setWorld as setBalanceWorld,
+    startBalanceAssist,
+    stopBalanceAssist,
+    toggleBalanceAssist,
+    isBalanceEnabled,
+    balanceDebugState,
+    resetBalanceAssist
+} from './physics/BalanceAssist.js';
 
 // Placeholder seed (will be real RNG seed later)
 let currentSeed = Math.floor(Math.random() * 1000000);
@@ -77,8 +88,14 @@ function spawnFighters() {
     // Update renderer with fighter list
     Renderer.setFighters([fighterA, fighterB]);
 
+    // Update balance assist with fighters
+    setBalanceFighters([fighterA, fighterB]);
+
     // Start AI tick loop with debug update callback
     startAI(updateAIDebug);
+
+    // Start balance assist
+    startBalanceAssist();
 
     console.log('[Spawn] Both fighters spawned');
 }
@@ -140,6 +157,51 @@ function updateImpactDebug() {
 }
 
 /**
+ * Update velocity debug overlay
+ */
+function updateVelocityDebug() {
+    const vxAEl = document.getElementById('vx-a');
+    const vxBEl = document.getElementById('vx-b');
+    const forceEl = document.getElementById('force-applied');
+
+    if (vxAEl) {
+        vxAEl.textContent = `vxA: ${debugState.vxA.toFixed(2)}`;
+    }
+    if (vxBEl) {
+        vxBEl.textContent = `vxB: ${debugState.vxB.toFixed(2)}`;
+    }
+    if (forceEl) {
+        forceEl.textContent = `Force: ${debugState.forceApplied.toFixed(3)}`;
+    }
+}
+
+/**
+ * Update balance debug overlay
+ */
+function updateBalanceDebug() {
+    const toggleEl = document.getElementById('balance-toggle');
+    const supportEl = document.getElementById('support-status');
+    const angleAEl = document.getElementById('angle-a');
+    const angleBEl = document.getElementById('angle-b');
+
+    if (toggleEl) {
+        const enabled = isBalanceEnabled();
+        toggleEl.textContent = `Balance: ${enabled ? 'ON' : 'OFF'}`;
+        toggleEl.className = enabled ? '' : 'off';
+    }
+    if (supportEl) {
+        supportEl.textContent = `Support: ${balanceDebugState.supportActive ? 'ON' : 'OFF'}`;
+        supportEl.className = balanceDebugState.supportActive ? '' : 'off';
+    }
+    if (angleAEl) {
+        angleAEl.textContent = `angleA: ${balanceDebugState.torsoAngleA.toFixed(0)}°`;
+    }
+    if (angleBEl) {
+        angleBEl.textContent = `angleB: ${balanceDebugState.torsoAngleB.toFixed(0)}°`;
+    }
+}
+
+/**
  * Initialize the battle sandbox
  */
 function init() {
@@ -168,6 +230,10 @@ function init() {
     // Spawn fighters
     spawnFighters();
 
+    // Initialize balance assist with arena floor position and world
+    const arena = getArenaConfig();
+    initBalanceAssist([fighterA, fighterB], arena.floorY, getWorld());
+
     // Initialize simulator with callbacks
     Simulator.init(
         engine,
@@ -176,8 +242,10 @@ function init() {
             // Update floating numbers
             updateImpacts(16.67); // ~60fps delta
 
-            // Update impact debug
+            // Update debug overlays
             updateImpactDebug();
+            updateVelocityDebug();
+            updateBalanceDebug();
 
             // Render
             Renderer.render(engine, debugInfo);
@@ -215,6 +283,13 @@ function init() {
                 toggleImpactDisplay();
                 updateImpactDebug();
                 break;
+            case 'KeyB':
+                event.preventDefault();
+                console.log('[Input] B pressed');
+                const balanceEnabled = toggleBalanceAssist();
+                console.log(`[Balance] Now ${balanceEnabled ? 'ON' : 'OFF'}`);
+                updateBalanceDebug();
+                break;
         }
     });
 
@@ -242,8 +317,10 @@ function init() {
  * Handle simulation reset
  */
 function handleReset() {
-    // Stop AI
+    // Stop AI and balance assist
     stopAI();
+    stopBalanceAssist();
+    resetBalanceAssist();
 
     // Recreate world
     const { engine } = resetWorld();
@@ -261,6 +338,10 @@ function handleReset() {
     // Respawn fighters
     spawnFighters();
 
+    // Re-initialize balance assist with new fighters and world
+    const arena = getArenaConfig();
+    initBalanceAssist([fighterA, fighterB], arena.floorY, getWorld());
+
     // Render initial state
     Renderer.render(engine, {
         fps: 0,
@@ -272,6 +353,7 @@ function handleReset() {
     // Update controls UI
     Controls.updateUI();
     updateImpactDebug();
+    updateBalanceDebug();
 
     console.log(`[Reset] New seed: ${currentSeed}`);
 }

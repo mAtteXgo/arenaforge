@@ -12,23 +12,38 @@ const { Body } = Matter;
 // =============================================================================
 
 export const AI_CONFIG = {
-    // Tick interval (ms) — faster = more responsive
-    tickInterval: 50,
+    // Tick interval (ms) — faster = more responsive movement
+    tickInterval: 30,
 
     // Distance thresholds
     approachDistance: 150,   // Start approaching when further than this
     idleDistance: 80,        // Stop approaching when closer than this
 
-    // Movement
-    moveForce: 0.008,        // Force applied when walking (increased for faster approach)
-    maxVelocity: 5,          // Clamp velocity to prevent rockets
-    brakingFactor: 0.85,     // Multiply velocity by this when IDLE (< 1 = braking)
+    // Movement forces
+    moveForce: 0.012,        // Force applied when walking
+
+    // Velocity limits
+    maxVx: 4,                // Max horizontal velocity (prevents rockets)
+
+    // Damping factors (lower = more braking)
+    idleDamping: 0.75,       // X velocity multiplier when IDLE
+    disabledDamping: 0.80,   // X velocity multiplier when AI is OFF
 
     // States
     states: {
         IDLE: 'IDLE',
         APPROACH: 'APPROACH',
     },
+};
+
+// =============================================================================
+// DEBUG STATE (exported for overlay)
+// =============================================================================
+
+export const debugState = {
+    vxA: 0,
+    vxB: 0,
+    forceApplied: 0,
 };
 
 // =============================================================================
@@ -132,39 +147,63 @@ export function getDistance(fighterA, fighterB) {
 }
 
 /**
- * Clamp a body's velocity
+ * Clamp horizontal velocity only
  * @param {Matter.Body} body 
- * @param {number} maxVel 
+ * @param {number} maxVx 
  */
-function clampVelocity(body, maxVel) {
+function clampHorizontalVelocity(body, maxVx) {
     const vx = body.velocity.x;
-    const vy = body.velocity.y;
-    const speed = Math.sqrt(vx * vx + vy * vy);
-
-    if (speed > maxVel) {
-        const scale = maxVel / speed;
+    if (Math.abs(vx) > maxVx) {
         Body.setVelocity(body, {
-            x: vx * scale,
-            y: vy * scale,
+            x: Math.sign(vx) * maxVx,
+            y: body.velocity.y,
         });
     }
 }
 
 /**
+ * Apply damping to horizontal velocity only
+ * @param {Matter.Body} body 
+ * @param {number} factor 
+ */
+function dampHorizontalVelocity(body, factor) {
+    Body.setVelocity(body, {
+        x: body.velocity.x * factor,
+        y: body.velocity.y,
+    });
+}
+
+/**
  * Process one AI tick for a single AI controller
  * @param {Object} ai 
+ * @param {number} index - Fighter index (0 or 1)
  */
-function processAITick(ai) {
-    if (!ai.enabled) return;
-
+function processAITick(ai, index) {
     const { fighter, target } = ai;
 
-    // Get positions
+    // Get bodies
     if (!fighter?.ragdoll?.bodies?.pelvis || !target?.ragdoll?.bodies?.pelvis) {
         return;
     }
 
-    const myPos = fighter.ragdoll.bodies.pelvis.position;
+    const pelvis = fighter.ragdoll.bodies.pelvis;
+    const torso = fighter.ragdoll.bodies.torso;
+
+    // Update debug state
+    if (index === 0) {
+        debugState.vxA = pelvis.velocity.x;
+    } else {
+        debugState.vxB = pelvis.velocity.x;
+    }
+
+    // If AI is disabled, apply damping and return
+    if (!ai.enabled) {
+        dampHorizontalVelocity(pelvis, AI_CONFIG.disabledDamping);
+        dampHorizontalVelocity(torso, AI_CONFIG.disabledDamping);
+        return;
+    }
+
+    const myPos = pelvis.position;
     const targetPos = target.ragdoll.bodies.pelvis.position;
 
     // Calculate distance
@@ -174,7 +213,7 @@ function processAITick(ai) {
 
     ai.lastDistance = distance;
 
-    // Determine state
+    // Determine state with hysteresis
     if (distance > AI_CONFIG.approachDistance) {
         ai.state = AI_CONFIG.states.APPROACH;
     } else if (distance < AI_CONFIG.idleDistance) {
@@ -189,36 +228,39 @@ function processAITick(ai) {
 
         // Apply to pelvis for stable walking
         Body.applyForce(
-            fighter.ragdoll.bodies.pelvis,
-            fighter.ragdoll.bodies.pelvis.position,
+            pelvis,
+            pelvis.position,
             { x: force, y: 0 }
         );
+
+        // Also apply to torso for faster response
+        Body.applyForce(
+            torso,
+            torso.position,
+            { x: force * 0.5, y: 0 }
+        );
+
+        debugState.forceApplied = force;
     } else if (ai.state === AI_CONFIG.states.IDLE) {
         // Apply braking when IDLE to stop drift
-        const pelvis = fighter.ragdoll.bodies.pelvis;
-        const torso = fighter.ragdoll.bodies.torso;
-
-        Body.setVelocity(pelvis, {
-            x: pelvis.velocity.x * AI_CONFIG.brakingFactor,
-            y: pelvis.velocity.y,
-        });
-        Body.setVelocity(torso, {
-            x: torso.velocity.x * AI_CONFIG.brakingFactor,
-            y: torso.velocity.y,
-        });
+        dampHorizontalVelocity(pelvis, AI_CONFIG.idleDamping);
+        dampHorizontalVelocity(torso, AI_CONFIG.idleDamping);
+        debugState.forceApplied = 0;
     }
 
-    // Clamp velocity on pelvis and torso
-    clampVelocity(fighter.ragdoll.bodies.pelvis, AI_CONFIG.maxVelocity);
-    clampVelocity(fighter.ragdoll.bodies.torso, AI_CONFIG.maxVelocity);
+    // Clamp horizontal velocity
+    clampHorizontalVelocity(pelvis, AI_CONFIG.maxVx);
+    clampHorizontalVelocity(torso, AI_CONFIG.maxVx);
 }
 
 /**
  * Process all AI ticks
  */
 function processAllAI() {
+    let index = 0;
     aiInstances.forEach(ai => {
-        processAITick(ai);
+        processAITick(ai, index);
+        index++;
     });
 
     // Call the tick callback if set (for debug updates)
